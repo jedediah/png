@@ -4,6 +4,7 @@ require 'inline'
 
 class String # :nodoc: # ZenTest SKIP
   inline do |builder|
+    raise CompilationError if defined?(JRUBY_VERSION)
     if RUBY_VERSION < "1.8.6" then
       builder.prefix <<-EOM
         #define RSTRING_PTR(s) (RSTRING(s)->ptr)
@@ -115,6 +116,7 @@ class PNG
 
   begin
     inline do |builder|
+      raise CompilationError if defined?(JRUBY_VERSION)
       if RUBY_VERSION < "1.8.6" then
         builder.prefix <<-EOM
           #define RARRAY_PTR(s) (RARRAY(s)->ptr)
