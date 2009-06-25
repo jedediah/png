@@ -13,34 +13,42 @@ class PNG
     png = png.dup
     signature = png.slice! 0, 8
     raise ArgumentError, 'Invalid PNG signature' unless signature == SIGNATURE
+    expected = ['IHDR','IDAT','IEND']
 
-    ihdr = read_chunk 'IHDR', png
-
-    bit_depth, color_type, width, height = read_IHDR ihdr, metadata_only
-
-    return [width, height, bit_depth] if metadata_only
-
-    canvas = PNG::Canvas.new width, height
-
-    type = png.slice(4, 4).unpack('a4').first
-    read_chunk type, png if type == 'iCCP' # Ignore color profile
-
-    read_IDAT read_chunk('IDAT', png), bit_depth, color_type, canvas
-    read_chunk 'IEND', png
-
+    until expected.empty?
+      type, chunk = read_chunk png
+      if expected[0] == type
+        expected.shift
+      elsif expected.include? type
+        raise "unexpected chunk #{type}"
+      end
+      
+      case type
+      when 'IHDR'
+        bit_depth, color_type, width, height = read_IHDR chunk, metadata_only
+        return [width, height, bit_depth] if metadata_only
+        canvas = PNG::Canvas.new width, height
+        expected = ['IDAT']
+      when 'IDAT'
+        read_IDAT chunk, bit_depth, color_type, canvas
+        expected = ['IEND']
+      when 'IEND'
+        expected = nil
+      end
+    end
+      
     canvas
   end
 
-  def self.read_chunk expected_type, png
+  def self.read_chunk png
     size, type = png.slice!(0, 8).unpack 'Na4'
     data, crc = png.slice!(0, size + 4).unpack "a#{size}N"
 
+    puts "chunk #{type} size=#{size} data.size=#{data.size}"
+
     check_crc type, data, crc
 
-    raise ArgumentError, "Expected #{expected_type} chunk, not #{type}" unless
-      type == expected_type
-
-    return data
+    return type, data
   end
 
   def self.check_crc type, data, crc

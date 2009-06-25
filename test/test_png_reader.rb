@@ -43,9 +43,9 @@ jwUwDGVBALuJxzlQugpEAAAAAElFTkSuQmCC
   end
 
   def test_class_read_chunk
-    data = PNG.read_chunk 'IHDR', @IHDR_chunk
+    data = PNG.read_chunk @IHDR_chunk
 
-    assert_equal @IHDR_data, data
+    assert_equal ['IHDR',@IHDR_data], data
   end
 
   def test_class_read_IDAT
